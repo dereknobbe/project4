@@ -1,12 +1,19 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.UnknownHostException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Scanner;
+import java.util.StringTokenizer;
 
 final class ChatClient {
     private ObjectInputStream sInput;
     private ObjectOutputStream sOutput;
-    private Socket socket;
+    private Socket socket;//TODO close
 
     private final String server;
     private final String username;
@@ -64,6 +71,9 @@ final class ChatClient {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            try {
+                System.out.println ( "Connection accepted " + server + "/" + InetAddress.getLocalHost () + ":" + port );
+            } catch (UnknownHostException e) {}
 
             return true;
         }
@@ -82,6 +92,26 @@ final class ChatClient {
         }
     }
 
+    public void close() {
+        try {
+            getsOutput ().close ();
+            getsInput ().close ();
+            getSocket ().close ();
+        } catch (IOException e ) {}
+    }
+
+    private ObjectInputStream getsInput() {
+        return sInput;
+    }
+
+    private ObjectOutputStream getsOutput() {
+        return sOutput;
+    }
+
+    private Socket getSocket() {
+        return socket;
+    }
+
 
     /*
      * To start the Client use one of the following command
@@ -96,16 +126,61 @@ final class ChatClient {
      */
     public static void main(String[] args) {
         // Get proper arguments and override defaults
-
+        ChatClient client = null;
+        if (args.length == 0) {
+            client = new ChatClient("localhost", 1500, "180student");
+        }
+        if (args.length == 1) {
+            client = new ChatClient("localhost", 1500, args[0]);
+        }
+        if (args.length == 2) {
+            int port = Integer.parseInt ( args[1] );
+            client = new ChatClient("localhost", port, args[0]);
+        }
+        if (args.length == 3) {
+            int port = Integer.parseInt ( args[1] );
+            client = new ChatClient(args[2], port, args[0]);
+        }
         // Create your client and start it
-        ChatClient client = new ChatClient("localhost", 1500, "CS 180 Student");
         client.start();
 
+        Scanner userinput = new Scanner(System.in);
+        while (true) {
+            String message = userinput.nextLine ();
+            if (message.equals ( "/logout" )) {
+                ChatMessage msg = new ChatMessage ( 1, "", "" );
+                client.sendMessage ( msg );
+                client.close();
+                break;
+            } else if (message.split ( " " )[0].equals ( "/msg" )) {
+                ChatMessage msg = new ChatMessage ( 2, message.split (" " )[1], message );
+                DateFormat sdf = new SimpleDateFormat ("yyyy/MM/dd HH:mm:ss");
+                String time = sdf.format(new Date ());
+                String[] totalmessage = message.split(" ");
+                String messager = "";
+                for (int i = 2; i < totalmessage.length; i++) {
+                    if (i == totalmessage.length - 1) {
+                        messager = messager + totalmessage[i];
+                        continue;
+                    }
+                    messager = messager + totalmessage[i] + " ";
+                }
+                System.out.println(time + " " + client.username + " -> " + message.split (" " )[1] + ": " +  messager);
+                client.sendMessage ( msg );
+            } else if (message.equals ( "/list" )) {
+                ChatMessage msg = new ChatMessage ( 3, "", "" );
+                client.sendMessage ( msg );
+            } else if (message.split ( " " )[0].equals ( "/ttt" )) {
+                ChatMessage msg = new ChatMessage ( 4, client.username, "" );
+                client.sendMessage ( msg );
+            } else {
+                ChatMessage msg = new ChatMessage ( 0, "", message );
+                client.sendMessage ( msg );
+            }
+        }
+
         // Send an empty message to the server
-        client.sendMessage(new ChatMessage());
     }
-
-
     /*
      * This is a private class inside of the ChatClient
      * It will be responsible for listening for messages from the ChatServer.
@@ -115,10 +190,10 @@ final class ChatClient {
         public void run() {
             while (true) {
                 try {
-                    String msg = (String) sInput.readObject();
-                    System.out.print(msg);
+                    String msg = (String) sInput.readObject ();
+                    System.out.print ( msg );
                 } catch (IOException | ClassNotFoundException e) {
-                    e.printStackTrace();
+                    e.printStackTrace ();
                 }
             }
         }
