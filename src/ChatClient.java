@@ -3,6 +3,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -18,6 +19,8 @@ final class ChatClient {
     private final String server;
     private final String username;
     private final int port;
+
+    private boolean open = true;
 
     /* ChatClient constructor
      * @param server - the ip address of the server as a string
@@ -79,6 +82,9 @@ final class ChatClient {
         }
     }
 
+    public void stopListening() {
+        open = false;
+    }
 
     /*
      * Sends a string to the server
@@ -171,7 +177,7 @@ final class ChatClient {
                 ChatMessage msg = new ChatMessage ( 3, "", "" );
                 client.sendMessage ( msg );
             } else if (message.split ( " " )[0].equals ( "/ttt" )) {
-                ChatMessage msg = new ChatMessage ( 4, client.username, "" );
+                ChatMessage msg = new ChatMessage ( 4, client.username, message );
                 client.sendMessage ( msg );
             } else {
                 ChatMessage msg = new ChatMessage ( 0, "", message );
@@ -188,11 +194,12 @@ final class ChatClient {
      */
     private final class ListenFromServer implements Runnable {
         public void run() {
-            while (true) {
+            while (open) {
                 try {
                     String msg = (String) sInput.readObject ();
                     System.out.print ( msg );
                 } catch (IOException | ClassNotFoundException e) {
+                    System.exit(1);
                     e.printStackTrace ();
                 }
             }

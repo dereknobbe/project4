@@ -27,6 +27,12 @@ final class ChatServer {
         this.port = port;
     }
 
+    public void serverPrint(String message) {
+        Date date = new Date();
+        DateFormat dateformat = new SimpleDateFormat ("HH:mm:ss" );
+        System.out.println(date + " " + message);
+    }
+
     private boolean clientExists(int id) {
         String user = "";
         int tempid = -1;
@@ -136,7 +142,6 @@ final class ChatServer {
         }
         System.out.println (dateformat.format(date) + " " + sender + ": " + message + "\n");
     }
-
     /**
      * Sample code to use as a reference for Tic Tac Toe
      *
@@ -170,6 +175,16 @@ final class ChatServer {
         System.out.print(formattedMessage);
     }
 
+    private synchronized void tttStartMessage(String message, String username) {
+        String formattedMessage = message + "\n";
+
+        for (ClientThread clientThread : clients) {
+            if (clientThread.username.equalsIgnoreCase(username)) {
+                clientThread.writeMsg(formattedMessage);
+            }
+        }
+    }
+
     private synchronized void privateMessage(String message, String username, String recipient) {
         DateFormat sdf = new SimpleDateFormat ("yyyy/MM/dd HH:mm:ss");
         String time = sdf.format(new Date());
@@ -197,20 +212,20 @@ final class ChatServer {
         }
         games.add ( new TicTacToeGame ( player1,player2 ) );
         TicTacToeGame tempGame = new TicTacToeGame ( "temp1","temp2" );
-        directMessage (tempGame.formattedBoard (),player1);
-        directMessage (tempGame.formattedBoard (),player2);
+        //directMessage (tempGame.formattedBoard (),player1);
+        //directMessage (tempGame.formattedBoard (),player2);
     }
 
     public synchronized void makeMove(int move, TicTacToeGame game, String username) {
-        if (game.getLastPlayed ().equals( username )) {
-            return;
-        }
+       // if (game.getLastPlayed ().equals( username )) {
+        //    return;
+        //}
         game.takeTurn ( move,username);
     }
 
     public synchronized boolean gameExists(String player1,String player2) {
-        for (int i = 0; i < games.size () ; i++) {
-            if (games.get ( i ).getPlayer1 ().equals ( player1 ) && games.get ( i ).getPlayer2 ().equals ( player2 )) {
+        for (int i = 0; i < games.size (); i++) {
+            if ((player1.equals(games.get(i).getPlayer1 ()) && player2.equals(games.get(i).getPlayer2 ())) || (player2.equals(games.get(i).getPlayer1()) && player1.equals(games.get(i).getPlayer2 ()))) {
                 return true;
             }
         }
@@ -274,12 +289,15 @@ final class ChatServer {
                 try {
                     cm = (ChatMessage) sInput.readObject ();
                 } catch (IOException | ClassNotFoundException e) {
-                    e.printStackTrace ();
+                    //I had to erase the printed stack trace lol oops
                 }
                 if (cm.getType () == 0) {
                     broadcast ( cm.getMessage (), username );
                 } else if (cm.getType () == 1) {
                     try {
+                        DateFormat sdf = new SimpleDateFormat ("yyyy/MM/dd HH:mm:ss");
+                        String time = sdf.format(new Date());
+                        System.out.println(time + " " + username + " disconnected with a LOGOUT message.\n");
                         sInput.close ();
                         sOutput.close ();
                         socket.close();
@@ -287,7 +305,7 @@ final class ChatServer {
                         e.printStackTrace ();
                     }
                     remove(id);
-                    break;
+                    return;
                 } else if (cm.getType () == 2) {
                     privateMessage ( cm.getMessage (), cm.getRecipient (), username);
                 } else if (cm.getType () == 3) {
@@ -298,29 +316,24 @@ final class ChatServer {
                     int counter = 0;
                     for (int i = 0; i < clients.size (); i++) {
                         //checking for disconnected players
-                        if (clients.get ( i ).username.equals(cm.getRecipient () )) {
+                        if (clients.get(i).username.equals(cm.getRecipient () )) {
                             if (!clients.get ( i ).socket.isConnected ()) {
                                 directMessage ( "This user is not currently connected.",username);
-                                for (int j = 0; j < games.size() ; i++) {
-                                    if (games.get ( j ).getPlayer2 ().equals(clients.get ( i ).username)) {
-                                        directMessage ( "Game over", games.get ( i ).getPlayer1 ( ));
-                                        directMessage ( "Game over", games.get ( i ).getPlayer2 ( ));
-                                        games.remove ( i );
-                                        counter++;
-                                    }
-                                }
                             }
                         }
                     }
                     //checking if game exists
                     if (!gameExists ( username,cm.getRecipient ()) && counter == 0) {
                         createGame ( username,cm.getRecipient () );
+                        serverPrint("TicTacToe started between " + username + " and " + cm.getRecipient());
+                        tttStartMessage("Started TicTacToe with " + cm.getRecipient(),username);
+                        tttStartMessage("Started TicTacToe with " + username,cm.getRecipient());
                     } else if (gameExists ( username,cm.getRecipient ())) {
                         //game exists, checking if move or board request
                         if (cm.getMessage ().matches ( "-?\\d+" )) {
                             for (int j = 0; j < games.size() ; j++) {
                                 //makemove
-                                if (username.equals(games.get(j).getPlayer1 ()) && cm.getRecipient ().equals(games.get(j).getPlayer2 ())) {
+                                if ((username.equals(games.get(j).getPlayer1 ()) && cm.getRecipient ().equals(games.get(j).getPlayer2 ())) || (username.equals(games.get(j).getPlayer2()) && cm.getRecipient ().equals(games.get(j).getPlayer1 ()))) {
                                     int move = Integer.parseInt ( cm.getMessage () );
                                     makeMove ( move,games.get ( j ),username );
                                     directMessage (games.get ( j ).formattedBoard (),games.get ( j ).getPlayer1 ());
@@ -337,7 +350,7 @@ final class ChatServer {
                         }
                     }
                     for (int i = 0; i < games.size() ; i++) {
-                        if (games.get(i).gameOver ()) {
+                        if (games.get(i).gameOverX ()) {
                             directMessage ( "Game over", games.get ( i ).getPlayer1 ( ));
                             directMessage ( "Game over", games.get ( i ).getPlayer2 ( ));
                             games.remove ( i );

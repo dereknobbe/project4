@@ -40,25 +40,28 @@ public class TicTacToeGame {
         return player2;
     }
 
-    public boolean gameOver() {
-        if (board[0][0] == "X" && board[0][1] == "X" && board[0][2] == "X") {
-            return true;
-        } else if (board[1][0] == "X" && board[1][1] == "X" && board[1][2] == "X") {
-            return true;
-        } else if (board[2][0] == "X" && board[2][1] == "X" && board[2][2] == "X") {
-            return true;
-        } else if (board[0][0] == "X" && board[1][0] == "X" && board[2][0] == "X") {
-            return true;
-        } else if (board[0][1] == "X" && board[1][1] == "X" && board[2][1] == "X") {
-            return true;
-        } else if (board[0][2] == "X" && board[1][2] == "X" && board[2][2] == "X") {
-            return true;
-        } else if (board[0][0] == "X" && board[1][1] == "X" && board[2][2] == "X") {
-            return true;
-        } else if (board[2][0] == "X" && board[1][1] == "X" && board[0][2] == "X") {
-            return true;
-        }
+    public boolean gameOverX() {
+            if (board[0][0] == "X" && board[0][1] == "X" && board[0][2] == "X") {
+                return true;
+            } else if (board[1][0] == "X" && board[1][1] == "X" && board[1][2] == "X") {
+                return true;
+            } else if (board[2][0] == "X" && board[2][1] == "X" && board[2][2] == "X") {
+                return true;
+            } else if (board[0][0] == "X" && board[1][0] == "X" && board[2][0] == "X") {
+                return true;
+            } else if (board[0][1] == "X" && board[1][1] == "X" && board[2][1] == "X") {
+                return true;
+            } else if (board[0][2] == "X" && board[1][2] == "X" && board[2][2] == "X") {
+                return true;
+            } else if (board[0][0] == "X" && board[1][1] == "X" && board[2][2] == "X") {
+                return true;
+            } else if (board[2][0] == "X" && board[1][1] == "X" && board[0][2] == "X") {
+                return true;
+            }
+            return false;
+    }
 
+    public boolean gameOverO() {
         if (board[0][0] == "O" && board[0][1] == "O" && board[0][2] == "O") {
             return true;
         } else if (board[1][0] == "O" && board[1][1] == "O" && board[1][2] == "O") {
@@ -76,7 +79,10 @@ public class TicTacToeGame {
         } else if (board[2][0] == "O" && board[1][1] == "O" && board[0][2] == "O") {
             return true;
         }
+        return false;
+    }
 
+    public boolean tieGame() {
         for (int i = 0; i < board.length ; i++) {
             for (int j = 0; j < board.length; j++) {
                 if (board[i][j].equals(" ")) {
@@ -84,7 +90,10 @@ public class TicTacToeGame {
                 }
             }
         }
-        return true;
+        if (!gameOverO() && !gameOverX()) {
+            return true;
+        }
+        return false;
     }
 
     public String getLastPlayed() {
@@ -95,9 +104,10 @@ public class TicTacToeGame {
         if (username == player1) {
             getXMove ( index );
         }
-        if (username == player2) {
+        else if (username == player2) {
             getOMove ( index );
         }
+
         lastPlayed = username;
     }
     public static String formattedBoard() {
